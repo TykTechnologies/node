@@ -32,7 +32,7 @@ namespace node {
   void dispatch_work(uv_work_t*);
   void dispatch_after(uv_work_t*);
 
-  const char* dispatch_entrypoint = "abc";
+  const char* dispatch_entrypoint = "dispatch";
 };
 #endif
 
