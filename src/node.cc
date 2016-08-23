@@ -1,4 +1,5 @@
 #include "node.h"
+#include "node_embed.h"
 #include "node_buffer.h"
 #include "node_constants.h"
 #include "node_file.h"
@@ -4308,6 +4309,10 @@ int Start(int argc, char** argv) {
   exec_argv = nullptr;
 
   return exit_code;
+}
+
+void* Dispatch(void* input, message_type type) {
+  return input;
 }
 
 
