@@ -4311,9 +4311,55 @@ int Start(int argc, char** argv) {
   return exit_code;
 }
 
-void* Dispatch(void* input, message_type type) {
+char* Dispatch(char* input, int input_length, message_type type) {
+  DispatchWork* work = new DispatchWork();
+  work->input = input;
+  work->input_length = input_length;
+  work->output = NULL;
+  work->output_length = 0;
+  work->type = type;
+  work->error = false;
+  work->request.data = work;
+
+  uv_queue_work(uv_default_loop(), &work->request, dispatch_work, (uv_after_work_cb)dispatch_after);
+
   return input;
 }
 
+void dispatch_work(uv_work_t* r) {
+}
+
+void dispatch_after(uv_work_t* r) {
+  printf("dispatch_after\n");
+  DispatchWork* work = static_cast<DispatchWork*>(r->data);
+  printf("dispatch_after data = %s\n", work->input );
+
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  HandleScope scope(isolate);
+  Environment* env = Environment::GetCurrent(isolate);
+
+  Local<String> function_name;
+  function_name = String::NewFromUtf8(isolate, dispatch_entrypoint);
+
+  v8::Handle<v8::Object> global = env->context()->Global();
+  v8::Handle<v8::Value> value = global->Get(function_name);
+
+  // Local<Object> input_buffer = Buffer::New(env, base, nread).ToLocalChecked();
+  // Buffer* input_buffer = new Buffer(0, 0);
+
+  MaybeLocal<Object> input_buffer = node::Buffer::New(isolate, work->input, work->input_length);
+  Local<v8::Integer> message_type;
+  message_type = v8::Integer::New(isolate, work->type);
+
+  if (value->IsFunction()) {
+    v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(value);
+    v8::Handle<Value> args[2] = {input_buffer.ToLocalChecked(), message_type};
+    v8::Handle<Value> result = func->Call(env->context()->Global(), 2, args);
+
+    v8::Handle<String> result_s = v8::Handle<String>::Cast(result);
+    v8::String::Utf8Value u(result_s);
+    printf("s = %s\n", *u);
+  };
+}
 
 }  // namespace node
