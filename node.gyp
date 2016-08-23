@@ -13,7 +13,7 @@
     'node_shared_openssl%': 'false',
     'node_v8_options%': '',
     'node_enable_v8_vtunejit%': 'false',
-    'node_target_type%': 'executable',
+    'node_target_type%': 'shared_library',
     'node_core_target_name%': 'node',
     'library_files': [
       'src/node.js',
@@ -216,7 +216,7 @@
           'defines': [ 'NODE_V8_OPTIONS="<(node_v8_options)"'],
         }],
         # No node_main.cc for anything except executable
-        [ 'node_target_type!="executable"', {
+        [ 'node_target_type!="shared_library"', {
           'sources!': [
             'src/node_main.cc',
           ],
@@ -280,7 +280,6 @@
                   'conditions': [
                     ['OS in "linux freebsd"', {
                       'ldflags': [
-                        '-Wl,--whole-archive <(PRODUCT_DIR)/<(OPENSSL_PRODUCT)',
                         '-Wl,--no-whole-archive',
                       ],
                     }],
@@ -443,7 +442,6 @@
         }],
         [ 'OS=="freebsd" or OS=="linux"', {
           'ldflags': [ '-Wl,-z,noexecstack',
-                       '-Wl,--whole-archive <(V8_BASE)',
                        '-Wl,--no-whole-archive' ]
         }],
         [ 'OS=="sunos"', {
@@ -675,7 +673,7 @@
     },
     {
       'target_name': 'cctest',
-      'type': 'executable',
+      'type': 'shared_library',
       'dependencies': [
         'deps/gtest/gtest.gyp:gtest',
         'deps/v8/tools/gyp/v8.gyp:v8',
@@ -705,7 +703,7 @@
       'targets': [
         {
           'target_name': 'node',
-          'type': 'executable',
+          'type': 'shared_library',
           'dependencies': ['<(node_core_target_name)', 'node_exp'],
 
           'include_dirs': [

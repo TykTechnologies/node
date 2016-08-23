@@ -231,7 +231,7 @@
         ],
       }],
       [ 'OS in "linux freebsd openbsd solaris aix"', {
-        'cflags': [ '-pthread', ],
+        'cflags': [ '-pthread', '-fPIC', ],
         'ldflags': [ '-pthread' ],
       }],
       [ 'OS in "linux freebsd openbsd solaris android aix"', {
