@@ -1,26 +1,15 @@
 #ifndef SRC_NODE_EMBED_H_
 #define SRC_NODE_EMBED_H_
 
-namespace node {
-  enum message_type {
-    request = 0,
-    event
-  };
+#include "node_embed_common.h"
 
-  struct DispatchWork {
-      uv_work_t request;
-      char* input;
-      int input_length;
-      char* output;
-      int output_length;
-      bool error;
-      message_type type;
-  };
-
-  void dispatch_work(uv_work_t*);
-  void dispatch_after(uv_work_t*);
-
-  const char* dispatch_entrypoint = "abc";
-};
+extern "C" {
+  struct DispatchWorkOutput Dispatch(char* input, int input_length, int type) {
+    return node::Dispatch(input, input_length, type);
+  }
+  int StartNode(int argc, char *argv[]) {
+    return node::Start(argc, argv);
+  }
+}
 
 #endif

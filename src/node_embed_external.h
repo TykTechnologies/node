@@ -1,16 +1,12 @@
 #ifndef SRC_NODE_EMBED_EXTERNAL_H_
 #define SRC_NODE_EMBED_EXTERNAL_H_
 
-namespace node {
-  enum message_type {
-    request = 0,
-    event
-  };
+#include "node_embed_common.h"
 
-  char* Dispatch(char*, int, message_type);
-  int Start(int argc, char *argv[]);
+char* fake_program_name = "./tyk";
+char* module_path = "./coprocess/nodejs/tyk/index.js";
 
-  const char* fake_program_name = "./program";
-};
+struct DispatchWorkOutput Dispatch(char*, int, int);
+int StartNode(int argc, char *argv[]);
 
 #endif
