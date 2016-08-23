@@ -1,5 +1,6 @@
 #include "node.h"
 #include "node_embed.h"
+#include "node_embed_common.h"
 #include "node_buffer.h"
 #include "node_constants.h"
 #include "node_file.h"
@@ -4264,7 +4265,9 @@ static void StartNodeInstance(void* arg) {
 }
 
 int Start(int argc, char** argv) {
+  printf("node::Start()\n");
   PlatformInit();
+  printf("node::PlatformInit()\n");
 
   CHECK_GT(argc, 0);
 
@@ -4311,33 +4314,38 @@ int Start(int argc, char** argv) {
   return exit_code;
 }
 
-char* Dispatch(char* input, int input_length, message_type type) {
+DispatchWorkOutput Dispatch(char* input, int input_length, int type) {
+  uv_mutex_lock(&node_isolate_mutex);
+
   DispatchWork* work = new DispatchWork();
   work->input = input;
   work->input_length = input_length;
   work->output = NULL;
   work->output_length = 0;
-  work->type = type;
+  work->type = message_type(type);
   work->error = false;
+  work->done = false;
   work->request.data = work;
 
   uv_queue_work(uv_default_loop(), &work->request, dispatch_work, (uv_after_work_cb)dispatch_after);
 
-  // This will block the goroutine until the work is done! Research the libuv utility functions.
-  for(;;) {
-    if(work->output != NULL) {
-      break;
-    }
+  // This will block the goroutine until the work is done! TODO: Research the libuv utility functions.
+  while( !work->done ) {
     usleep(100);
   }
 
-  return work->output;
+  DispatchWorkOutput output = {work->output, work->output_length};
+
+  uv_mutex_unlock(&node_isolate_mutex);
+
+  return output;
 }
 
 void dispatch_work(uv_work_t* r) {
 }
 
 void dispatch_after(uv_work_t* r) {
+
   DispatchWork* work = static_cast<DispatchWork*>(r->data);
 
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
@@ -4362,14 +4370,10 @@ void dispatch_after(uv_work_t* r) {
 
     Local<Object> output_buffer_object = result->ToObject();
 
-    work->output = node::Buffer::Data(output_buffer_object);
     work->output_length = node::Buffer::Length(output_buffer_object);
+    work->output = node::Buffer::Data(output_buffer_object);
 
-    /*
-    v8::Handle<String> result_s = v8::Handle<String>::Cast(result);
-    v8::String::Utf8Value u(result_s);
-    printf("s = %s\n", *u);
-    */
+    work->done = true;
   };
 }
 
