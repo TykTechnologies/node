@@ -4323,16 +4323,22 @@ char* Dispatch(char* input, int input_length, message_type type) {
 
   uv_queue_work(uv_default_loop(), &work->request, dispatch_work, (uv_after_work_cb)dispatch_after);
 
-  return input;
+  // This will block the goroutine until the work is done! Research the libuv utility functions.
+  for(;;) {
+    if(work->output != NULL) {
+      break;
+    }
+    usleep(100);
+  }
+
+  return work->output;
 }
 
 void dispatch_work(uv_work_t* r) {
 }
 
 void dispatch_after(uv_work_t* r) {
-  printf("dispatch_after\n");
   DispatchWork* work = static_cast<DispatchWork*>(r->data);
-  printf("dispatch_after data = %s\n", work->input );
 
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
   HandleScope scope(isolate);
@@ -4344,8 +4350,6 @@ void dispatch_after(uv_work_t* r) {
   v8::Handle<v8::Object> global = env->context()->Global();
   v8::Handle<v8::Value> value = global->Get(function_name);
 
-  // Local<Object> input_buffer = Buffer::New(env, base, nread).ToLocalChecked();
-  // Buffer* input_buffer = new Buffer(0, 0);
 
   MaybeLocal<Object> input_buffer = node::Buffer::New(isolate, work->input, work->input_length);
   Local<v8::Integer> message_type;
@@ -4356,9 +4360,16 @@ void dispatch_after(uv_work_t* r) {
     v8::Handle<Value> args[2] = {input_buffer.ToLocalChecked(), message_type};
     v8::Handle<Value> result = func->Call(env->context()->Global(), 2, args);
 
+    Local<Object> output_buffer_object = result->ToObject();
+
+    work->output = node::Buffer::Data(output_buffer_object);
+    work->output_length = node::Buffer::Length(output_buffer_object);
+
+    /*
     v8::Handle<String> result_s = v8::Handle<String>::Cast(result);
     v8::String::Utf8Value u(result_s);
     printf("s = %s\n", *u);
+    */
   };
 }
 
